@@ -57,17 +57,18 @@ build = [
     "ninja"
 ]
 flash-attention = [
-    "flash-attn==2.8.3",
+    "flash-attn==2.8.3.post1+cu.13.0.torch.2.10; sys_platform == 'linux'",
 ]
 conch = [
     "huggingface-hub>=0.26.2",
-    "conch @ git+https://github.com/KatherLab/CONCH",
+    "conch @ git+https://github.com/KatherLab/CONCH@e1bd7e6ad11e0a6c4e74591f9a982374f239aa9a",
 ]
 conch1_5_cpu = [
     "einops-exts==0.0.4",
 ]
 conch1_5 = [
-    "stamp[conch1_5_cpu, flash-attention]",
+    "stamp[conch1_5_cpu]",
+    "stamp[flash-attention]; sys_platform == 'linux'",
 ]
 ctranspath = [
     "gdown>=5.2.0",
@@ -77,34 +78,37 @@ chief_ctranspath = [
     "torch>=2.0.0"
 ]
 gigapath = [
-    "stamp[flash-attention]",
-    "gigapath @ git+https://github.com/KatherLab/prov-gigapath.git@ec97baa5f071319680132e18868279b4cca877cc",
-    "fvcore",
-    "iopath",
-    "monai",
-    "scikit-image",
-    "webdataset",
-    "scikit-survival>=0.24.1",
-    "fairscale",
-    "wandb",
+    "stamp[flash-attention]; sys_platform == 'linux'",
+    "gigapath @ git+https://github.com/KatherLab/prov-gigapath.git@ec97baa5f071319680132e18868279b4cca877cc ; sys_platform == 'linux'",
+    "fvcore; sys_platform == 'linux'",
+    "iopath; sys_platform == 'linux'",
+    "monai; sys_platform == 'linux'",
+    "scikit-image; sys_platform == 'linux'",
+    "webdataset; sys_platform == 'linux'",
+    "scikit-survival>=0.24.1; sys_platform == 'linux'",
+    "fairscale; sys_platform == 'linux'",
+    "wandb; sys_platform == 'linux'",
 ]
 uni = [
     "huggingface-hub>=0.26.2",
     "uni @ git+https://github.com/KatherLab/uni.git@f37c299eb0bffa0e585f120974082cfec6ee6d53",
+    # UNI declares an unconditional `xformers>=0.0.18`, but xformers only ships
+    # wheels for Linux x86_64 and Windows AMD64. It is dropped via
+    # tool.uv.exclude-dependencies and re-added here with the platforms it
+    # actually supports. 0.0.35 is the first release that does not pin torch
+    # to an exact version.
+    "xformers>=0.0.35; (sys_platform == 'linux' and platform_machine == 'x86_64') or (sys_platform == 'win32' and platform_machine == 'AMD64')",
 ]
 virchow2 = [
     "huggingface-hub>=0.27.1",
     "torch>=2.0.0",
 ]
 cobra = [
-    "causal-conv1d @ https://github.com/Dao-AILab/causal-conv1d/releases/download/v1.6.1.post4/causal_conv1d-1.6.1+cu13torch2.10cxx11abiTRUE-cp313-cp313-linux_x86_64.whl ; sys_platform == 'linux' and platform_machine == 'x86_64' and python_version == '3.13' and extra == 'cobra'",
-    "causal-conv1d @ https://github.com/Dao-AILab/causal-conv1d/releases/download/v1.6.1.post4/causal_conv1d-1.6.1+cu13torch2.10cxx11abiTRUE-cp313-cp313-linux_aarch64.whl ; sys_platform == 'linux' and platform_machine == 'aarch64' and python_version == '3.13' and extra == 'cobra'",
-    "mamba-ssm @ https://github.com/state-spaces/mamba/releases/download/v2.3.1/mamba_ssm-2.3.1+cu13torch2.10cxx11abiTRUE-cp313-cp313-linux_x86_64.whl ; sys_platform == 'linux' and platform_machine == 'x86_64' and python_version == '3.13'",
-    "mamba-ssm @ https://github.com/state-spaces/mamba/releases/download/v2.3.1/mamba_ssm-2.3.1+cu13torch2.10cxx11abiTRUE-cp313-cp313-linux_aarch64.whl ; sys_platform == 'linux' and platform_machine == 'aarch64' and python_version == '3.13'",
-
-    "cobra @ git+http://github.com/KatherLab/COBRA.git@49d231191db5a9c2ea37a2398dd922c8c9ee9cdb",
-    "jinja2>=3.1.4",
-    "triton",
+    "causal-conv1d==1.6.2.post1+cu.13.0.torch.2.10; sys_platform == 'linux'",
+    "mamba-ssm==2.3.2.post1+cu.13.0.torch.2.10; sys_platform == 'linux'",
+    "cobra @ git+https://github.com/KatherLab/COBRA.git@49d231191db5a9c2ea37a2398dd922c8c9ee9cdb ; sys_platform == 'linux'",
+    "jinja2>=3.1.4; sys_platform == 'linux'",
+    "triton; sys_platform == 'linux'",
 ]
 prism_cpu = [
     "sacremoses==0.1.1",
@@ -121,7 +125,8 @@ musk_cpu = [
     "fairscale",
 ]
 musk = [
-    "stamp[musk_cpu, flash-attention]",
+    "stamp[musk_cpu]",
+    "stamp[flash-attention]; sys_platform == 'linux'",
 ]
 plip_cpu = [
     "transformers>=4.45.2"
@@ -150,13 +155,12 @@ gpu_all = [
     "torchvision~=0.25.0",
     "stamp[conch,ctranspath,uni,virchow2,chief_ctranspath,musk,gigapath,conch1_5,prism,madeleine,plip,cobra]"
 ]
+# Deprecated. `gpu` and `gpu_all` now install pre-built wheels from the Astral
+# index, so there is nothing left for a separate "prebuilt" target to do. Kept
+# for one release as an alias of `gpu_all` so existing install commands keep
+# working; it will be removed in the next breaking release.
 gpu_prebuilt = [
-    "torch~=2.10.0",
-    "torchvision~=0.25.0",
-    "stamp[conch,ctranspath,uni,virchow2,chief_ctranspath,musk,gigapath,conch1_5,prism,madeleine,plip,cobra]",
-    "flash-attn @ https://github.com/KatherLab/STAMP/releases/download/2.5.0/flash_attn-2.8.3+cu130torch2.10-cp313-cp313-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl ; sys_platform == 'linux' and platform_machine == 'x86_64' and python_version == '3.13'",
-    "flash-attn @ https://github.com/KatherLab/STAMP/releases/download/2.5.0/flash_attn-2.8.3+cu130torch2.10-cp313-cp313-manylinux_2_34_aarch64.whl ; sys_platform == 'linux' and platform_machine == 'aarch64' and python_version == '3.13'",
-    "flash-attn @ https://github.com/KatherLab/STAMP/releases/download/2.5.0/flash_attn-2.8.3+cu130torch2.10-cp313-cp313-win_amd64.whl ; sys_platform == 'win32' and platform_machine == 'AMD64' and python_version == '3.13'",
+    "stamp[gpu_all]",
 ]
 all = ["stamp[cpu]"]
 
@@ -193,6 +197,7 @@ markers = [
 lint.ignore = ["F722"] # https://docs.kidger.site/jaxtyping/faq/#flake8-or-ruff-are-throwing-an-error
 
 [tool.uv]
+required-version = ">=0.12,<0.13"
 conflicts = [
   [
     { extra = "cpu" },
@@ -206,10 +211,38 @@ conflicts = [
     { extra = "cpu" },
     { extra = "gpu_prebuilt" },
   ],
+  [
+    { extra = "gpu" },
+    { extra = "gpu_all" },
+  ],
+  [
+    { extra = "gpu" },
+    { extra = "gpu_prebuilt" },
+  ],
 ]
 build-constraint-dependencies = [
   "torch==2.10.0",
   "torchvision==0.25.0",
+]
+
+# The compiled CUDA extensions are ABI-locked to one PyTorch build. Building
+# them from source runs a setup.py that probes for nvcc, which fails on any
+# machine without a CUDA toolkit -- including every Apple Silicon Mac. Refusing
+# the build turns "wrong platform" into a clear resolution error instead of a
+# confusing compiler error.
+no-build-package = [
+  "flash-attn",
+  "mamba-ssm",
+  "causal-conv1d",
+]
+
+# The upstream forks declare their CUDA extras unconditionally, which drags
+# CUDA-only packages onto macOS. Drop them here and re-declare them in the
+# extras above with correct platform markers and indexes.
+exclude-dependencies = [
+  { package = { name = "uni" }, dependencies = ["xformers"] },
+  { package = { name = "gigapath" }, dependencies = ["flash-attn"] },
+  { package = { name = "cobra" }, dependencies = ["mamba-ssm", "causal-conv1d"] },
 ]
 
 
@@ -218,14 +251,15 @@ torch = [
   { index = "pytorch-cpu", extra = "cpu" },
   { index = "pytorch-cu130", extra = "gpu" },
   { index = "pytorch-cu130", extra = "gpu_all" },
-  { index = "pytorch-cu130", extra = "gpu_prebuilt" },
 ]
 torchvision = [
   { index = "pytorch-cpu", extra = "cpu" },
   { index = "pytorch-cu130", extra = "gpu" },
   { index = "pytorch-cu130", extra = "gpu_all" },
-  { index = "pytorch-cu130", extra = "gpu_prebuilt" },
 ]
+flash-attn = { index = "astral-cu130" }
+mamba-ssm = { index = "astral-cu130" }
+causal-conv1d = { index = "astral-cu130" }
 
 [[tool.uv.index]]
 name = "pytorch-cpu"
@@ -237,31 +271,15 @@ name = "pytorch-cu130"
 url = "https://download.pytorch.org/whl/cu130"
 explicit = true
 
+# Pre-built flash-attn / mamba-ssm / causal-conv1d wheels. Each version carries
+# a local segment identifying the CUDA and PyTorch build it was compiled
+# against, e.g. `+cu.13.0.torch.2.10`.
+[[tool.uv.index]]
+name = "astral-cu130"
+url = "https://wheels.astral.sh/simple/cu130/"
+explicit = true
 
-[[tool.uv.dependency-metadata]]
-name = "uni"
-version = "v0.1.0"
-requires-dist = [
-    "torch>=2.0.1",
-    "torchvision",
-    "timm>=0.9.8",
-    "numpy",
-    "pandas",
-    "scikit-learn",
-    "tqdm",
-    "transformers",
-    "xformers; (sys_platform == 'linux' and platform_machine == 'x86_64') or (sys_platform == 'win32' and platform_machine == 'AMD64')"
-]
-
-
-[[tool.uv.dependency-metadata]]
-name = "flash-attn"
-requires-dist = [
-    "torch",
-    "einops",
-]
 
 [tool.uv.extra-build-dependencies]
-flash-attn = ["torch"]
 gigapath = ["torch"]
 conch = ["torch"]

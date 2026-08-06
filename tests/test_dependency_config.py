@@ -6,6 +6,7 @@ files that pin STAMP's dependency stack.
 
 import importlib.util
 import re
+import sys
 import tomllib
 from pathlib import Path
 
@@ -25,6 +26,9 @@ def _load_checker():
     spec = importlib.util.spec_from_file_location("check_dependency_config", path)
     assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)
+    # `@dataclass` resolves postponed annotations through `sys.modules`, so the
+    # module has to be registered before it is executed.
+    sys.modules[spec.name] = module
     spec.loader.exec_module(module)
     return module
 
@@ -156,9 +160,30 @@ def test_lock_has_no_katherlab_wheel_artifacts(lock):
     assert offenders == []
 
 
-def test_lock_supports_both_python_versions(lock):
-    """The universal lock covers the whole supported Python range."""
-    assert lock["requires-python"] == ">=3.13, <3.15"
+def test_lock_covers_the_declared_python_range(pyproject, lock):
+    """The universal lock covers exactly the supported Python range."""
+    declared = {c.strip() for c in pyproject["project"]["requires-python"].split(",")}
+    locked = {c.strip() for c in lock["requires-python"].split(",")}
+    assert locked == declared
+
+
+@pytest.mark.parametrize("version", ["3.13", "3.14"])
+def test_both_supported_pythons_are_in_range(pyproject, version):
+    """3.13 and 3.14 are both inside the declared range."""
+    clauses = pyproject["project"]["requires-python"]
+    assert f">={version}" in clauses or _below_upper_bound(version, clauses)
+
+
+def _below_upper_bound(version: str, clauses: str) -> bool:
+    upper = re.search(r"<\s*(\d+)\.(\d+)", clauses)
+    lower = re.search(r">=\s*(\d+)\.(\d+)", clauses)
+    assert upper is not None and lower is not None
+    as_tuple = tuple(int(p) for p in version.split("."))
+    return (
+        (int(lower.group(1)), int(lower.group(2)))
+        <= as_tuple
+        < (int(upper.group(1)), int(upper.group(2)))
+    )
 
 
 def test_lock_is_in_sync_with_pyproject(pyproject, lock):

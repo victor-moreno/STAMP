@@ -122,6 +122,21 @@ def check_git_dependencies(requirements: list[Requirement]) -> list[str]:
     return errors
 
 
+def check_url_requirement_markers(requirements: list[Requirement]) -> list[str]:
+    """``name @ url`` requirements need whitespace before the marker semicolon.
+
+    PEP 508 requires it, and hatchling enforces it even though uv accepts the
+    tighter spelling -- so omitting the space still locks fine but breaks
+    ``uv build`` and any install that builds STAMP's own metadata.
+    """
+    return [
+        f"{req.origin}: URL requirement needs whitespace before the ';' marker "
+        f"separator (PEP 508): {req.text!r}"
+        for req in requirements
+        if " @ " in req.text and re.search(r"\S;", req.text)
+    ]
+
+
 def check_gpu_prebuilt_has_no_wheels(pyproject: dict) -> list[str]:
     """``gpu_prebuilt`` is a deprecated alias and must not regain wheel URLs."""
     extras = pyproject.get("project", {}).get("optional-dependencies", {})
@@ -134,24 +149,43 @@ def check_gpu_prebuilt_has_no_wheels(pyproject: dict) -> list[str]:
 
 
 def _configured_cuda_version(pyproject: dict) -> tuple[str, str] | None:
-    """Return the ``(major, minor)`` CUDA version of the Astral index URL."""
+    """Return the ``(major, minor)`` CUDA version of the Astral index URL.
+
+    Channel names spell the minor version as a single trailing digit, so
+    ``cu130`` means CUDA 13.0 and ``cu128`` means CUDA 12.8.
+    """
     for index in pyproject.get("tool", {}).get("uv", {}).get("index", []):
         if index.get("name") != ASTRAL_INDEX_NAME:
             continue
-        match = re.search(r"/cu(\d)(\d+)/?$", index.get("url", ""))
+        match = re.search(r"/cu(\d+)(\d)/?$", index.get("url", ""))
         if match:
             return match.group(1), match.group(2)
     return None
 
 
-def _configured_torch_version(requirements: list[Requirement]) -> tuple[str, str] | None:
-    """Return the ``(major, minor)`` PyTorch version the project pins."""
-    for req in requirements:
-        if req.name != "torch":
-            continue
-        match = re.search(r"[=~><]=?\s*(\d+)\.(\d+)", req.text)
-        if match:
-            return match.group(1), match.group(2)
+#: Extras that pin the exact torch build the whole environment is bound to.
+_TORCH_PINNING_EXTRAS = ("cpu", "gpu", "gpu_all")
+
+
+def _configured_torch_version(pyproject: dict) -> tuple[str, str] | None:
+    """Return the ``(major, minor)`` PyTorch version the blanket extras pin.
+
+    Only the blanket targets count: other extras carry loose floors such as
+    ``torch>=2.0.0`` that say nothing about the selected ABI.
+    """
+    extras = pyproject.get("project", {}).get("optional-dependencies", {})
+    found: set[tuple[str, str]] = set()
+
+    for extra in _TORCH_PINNING_EXTRAS:
+        for text in extras.get(extra, []):
+            if _normalize(Requirement("", text).name) != "torch":
+                continue
+            match = re.search(r"~=\s*(\d+)\.(\d+)", text)
+            if match:
+                found.add((match.group(1), match.group(2)))
+
+    if len(found) == 1:
+        return found.pop()
     return None
 
 
@@ -168,9 +202,12 @@ def check_extension_versions(
             f"recognisable /cuXY/ URL was found"
         ]
 
-    torch = _configured_torch_version(requirements)
+    torch = _configured_torch_version(pyproject)
     if torch is None:
-        return ["could not determine the pinned torch version from pyproject.toml"]
+        return [
+            f"the {', '.join(_TORCH_PINNING_EXTRAS)} extras must each pin torch with "
+            f"a single agreed `~=MAJOR.MINOR.PATCH` requirement"
+        ]
 
     sources = pyproject.get("tool", {}).get("uv", {}).get("sources", {})
     seen: set[str] = set()
@@ -236,6 +273,7 @@ def main() -> int:
     errors = [
         *check_no_wheel_urls(requirements),
         *check_git_dependencies(requirements),
+        *check_url_requirement_markers(requirements),
         *check_gpu_prebuilt_has_no_wheels(pyproject),
         *check_extension_versions(pyproject, requirements),
         *check_no_build_packages(pyproject),
