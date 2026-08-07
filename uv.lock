@@ -166,15 +166,6 @@ wheels = [
 ]
 
 [[package]]
-name = "annotated-doc"
-version = "0.0.5"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/5a/8e/38aa427ed5402449e226975b649c5dc73ccadfefeb95e6aecb8f8ea4b6b6/annotated_doc-0.0.5.tar.gz", hash = "sha256:c7e58ce09192557605d8bbd92836d7e1d520ac9580096042c0bfd197efacf1bb", size = 10758, upload-time = "2026-07-28T13:50:58.129Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/3e/30/e900b21425a860e195f32e37657aa1f7c7f2b1bfb26f03ca209b90933c06/annotated_doc-0.0.5-py3-none-any.whl", hash = "sha256:117bac03a25ede5df5440e855b32d556049ca169ead221505badf432fed4b101", size = 5302, upload-time = "2026-07-28T13:50:57.239Z" },
-]
-
-[[package]]
 name = "annotated-types"
 version = "0.8.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1352,22 +1343,21 @@ wheels = [
 
 [[package]]
 name = "huggingface-hub"
-version = "1.26.1"
+version = "0.36.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "click" },
     { name = "filelock" },
     { name = "fsspec" },
-    { name = "hf-xet", marker = "platform_machine == 'AMD64' or platform_machine == 'aarch64' or platform_machine == 'amd64' or platform_machine == 'arm64' or platform_machine == 'x86_64' or (extra == 'extra-5-stamp-cpu' and extra == 'extra-5-stamp-gpu') or (extra == 'extra-5-stamp-cpu' and extra == 'extra-5-stamp-gpu-all') or (extra == 'extra-5-stamp-cpu' and extra == 'extra-5-stamp-gpu-prebuilt') or (extra == 'extra-5-stamp-gpu' and extra == 'extra-5-stamp-gpu-all') or (extra == 'extra-5-stamp-gpu' and extra == 'extra-5-stamp-gpu-prebuilt')" },
-    { name = "httpx" },
+    { name = "hf-xet", marker = "platform_machine == 'aarch64' or platform_machine == 'amd64' or platform_machine == 'arm64' or platform_machine == 'x86_64' or (extra == 'extra-5-stamp-cpu' and extra == 'extra-5-stamp-gpu') or (extra == 'extra-5-stamp-cpu' and extra == 'extra-5-stamp-gpu-all') or (extra == 'extra-5-stamp-cpu' and extra == 'extra-5-stamp-gpu-prebuilt') or (extra == 'extra-5-stamp-gpu' and extra == 'extra-5-stamp-gpu-all') or (extra == 'extra-5-stamp-gpu' and extra == 'extra-5-stamp-gpu-prebuilt')" },
     { name = "packaging" },
     { name = "pyyaml" },
+    { name = "requests" },
     { name = "tqdm" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/89/64/bfe23dab749cb2342e1e13b61c9e684ce46b4d189c7d433cd26f76f52baf/huggingface_hub-1.26.1.tar.gz", hash = "sha256:7c28860777594ac679233f571552d0e46df34ed4e4239e844190fad3ca05e4cd", size = 936700, upload-time = "2026-08-06T09:42:24.859Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/7c/b7/8cb61d2eece5fb05a83271da168186721c450eb74e3c31f7ef3169fa475b/huggingface_hub-0.36.2.tar.gz", hash = "sha256:1934304d2fb224f8afa3b87007d58501acfda9215b334eed53072dd5e815ff7a", size = 649782, upload-time = "2026-02-06T09:24:13.098Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/b4/a7/b519cd01e57b685c5f3e9db02cb1bd7aaade35fb6554e0d36bee6d6aae28/huggingface_hub-1.26.1-py3-none-any.whl", hash = "sha256:d8676e4ec96c1e481a22a93232bd86d73bbac643fb767399aefaeaa503890fb0", size = 780754, upload-time = "2026-08-06T09:42:22.497Z" },
+    { url = "https://files.pythonhosted.org/packages/a8/af/48ac8483240de756d2438c380746e7130d1c6f75802ef22f3c6d49982787/huggingface_hub-0.36.2-py3-none-any.whl", hash = "sha256:48f0c8eac16145dfce371e9d2d7772854a4f591bcb56c9cf548accf531d54270", size = 566395, upload-time = "2026-02-06T09:24:11.133Z" },
 ]
 
 [[package]]
@@ -3907,15 +3897,6 @@ wheels = [
 ]
 
 [[package]]
-name = "shellingham"
-version = "1.5.4"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/58/15/8b3609fd3830ef7b27b655beb4b4e9c62313a4e8da8c676e142cc210d58e/shellingham-1.5.4.tar.gz", hash = "sha256:8dbca0739d487e5bd35ab3ca4b36e11c4078f3a234bfce294b0a0291363404de", size = 10310, upload-time = "2023-10-24T04:13:40.426Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/e0/f9/0595336914c5619e5f28a1fb793285925a8cd4b432c9da0a987836c7f822/shellingham-1.5.4-py2.py3-none-any.whl", hash = "sha256:7ecfff8f2fd72616f7481040475a65b2bf8af90a56c89140852d1120324e8686", size = 9755, upload-time = "2023-10-24T04:13:38.866Z" },
-]
-
-[[package]]
 name = "six"
 version = "1.17.0"
 source = { registry = "https://pypi.org/simple" }
@@ -4229,7 +4210,7 @@ requires-dist = [
     { name = "gigapath", marker = "sys_platform == 'linux' and extra == 'gigapath'", git = "https://github.com/KatherLab/prov-gigapath.git?rev=ec97baa5f071319680132e18868279b4cca877cc" },
     { name = "h5py", specifier = "~=3.16.0" },
     { name = "hatchling", marker = "extra == 'build'" },
-    { name = "huggingface-hub", specifier = "~=1.26.1" },
+    { name = "huggingface-hub", specifier = "~=0.36.2" },
     { name = "huggingface-hub", marker = "extra == 'conch'", specifier = ">=0.26.2" },
     { name = "huggingface-hub", marker = "extra == 'uni'", specifier = ">=0.26.2" },
     { name = "huggingface-hub", marker = "extra == 'virchow2'", specifier = ">=0.27.1" },
@@ -4284,7 +4265,7 @@ requires-dist = [
     { name = "torchvision", marker = "extra == 'gpu'", specifier = "~=0.26.0", index = "https://download.pytorch.org/whl/cu130", conflict = { package = "stamp", extra = "gpu" } },
     { name = "torchvision", marker = "extra == 'gpu-all'", specifier = "~=0.26.0", index = "https://download.pytorch.org/whl/cu130", conflict = { package = "stamp", extra = "gpu-all" } },
     { name = "tqdm", specifier = "~=4.70.0" },
-    { name = "transformers", specifier = "~=5.14.1" },
+    { name = "transformers", specifier = "~=4.57.6" },
     { name = "transformers", marker = "extra == 'plip-cpu'", specifier = ">=4.45.2" },
     { name = "triton", marker = "sys_platform == 'linux' and extra == 'cobra'" },
     { name = "uni", marker = "extra == 'uni'", git = "https://github.com/KatherLab/uni.git?rev=f37c299eb0bffa0e585f120974082cfec6ee6d53" },
@@ -4296,7 +4277,7 @@ provides-extras = ["build", "flash-attention", "conch", "conch1-5-cpu", "conch1-
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "huggingface-hub", specifier = "~=1.26.1" },
+    { name = "huggingface-hub", specifier = "~=0.36.2" },
     { name = "ipykernel", specifier = "~=7.3.0" },
     { name = "pyright", specifier = "~=1.1.411" },
     { name = "pytest", specifier = "~=9.1.1" },
@@ -4716,22 +4697,23 @@ wheels = [
 
 [[package]]
 name = "transformers"
-version = "5.14.1"
+version = "4.57.6"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
+    { name = "filelock" },
     { name = "huggingface-hub" },
     { name = "numpy" },
     { name = "packaging" },
     { name = "pyyaml" },
     { name = "regex" },
+    { name = "requests" },
     { name = "safetensors" },
     { name = "tokenizers" },
     { name = "tqdm" },
-    { name = "typer" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/5a/fb/2a2ba88f325e68a921d8b69ff63b477830b2e73ade9a3c8c8cab2f06d741/transformers-5.14.1.tar.gz", hash = "sha256:60d196c27781eacf8637e2b533f517582907ad6f9ae142046d6b69431a5b2173", size = 9295927, upload-time = "2026-07-16T09:41:57.773Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/c4/35/67252acc1b929dc88b6602e8c4a982e64f31e733b804c14bc24b47da35e6/transformers-4.57.6.tar.gz", hash = "sha256:55e44126ece9dc0a291521b7e5492b572e6ef2766338a610b9ab5afbb70689d3", size = 10134912, upload-time = "2026-01-16T10:38:39.284Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/6f/67/8d85ca2323233ae3c0365a659c4e52ee1f587b440e4bc577e7d8e4416d0f/transformers-5.14.1-py3-none-any.whl", hash = "sha256:9db974c4079ede2d1a3ea7ca5a240df33f2cc26fc2b36ba64c5f2a4f43b6e725", size = 11625234, upload-time = "2026-07-16T09:41:54.143Z" },
+    { url = "https://files.pythonhosted.org/packages/03/b8/e484ef633af3887baeeb4b6ad12743363af7cce68ae51e938e00aaa0529d/transformers-4.57.6-py3-none-any.whl", hash = "sha256:4c9e9de11333ddfe5114bc872c9f370509198acf0b87a832a0ab9458e2bd0550", size = 11993498, upload-time = "2026-01-16T10:38:31.289Z" },
 ]
 
 [[package]]
@@ -4779,21 +4761,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/c2/e3/7ca82ee24c82d344584abd5b8637b3bd056f2900226e8d82fc22f1184b92/trove_classifiers-2026.6.1.19.tar.gz", hash = "sha256:c5132b4b61a829d11cfbd2d72e97f20a45ed6edb95e45c5efdeb5e00836b2745", size = 17059, upload-time = "2026-06-01T19:41:34.649Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/7c/a4/81502f486f01db95bc8320646a8a12511f5e556cb63d5e224d91816605c4/trove_classifiers-2026.6.1.19-py3-none-any.whl", hash = "sha256:ab4c4ec93cc4a4e7815fa759906e05e6bb3f2fbd92ea0f897288c6a43efd15b3", size = 14211, upload-time = "2026-06-01T19:41:33.434Z" },
-]
-
-[[package]]
-name = "typer"
-version = "0.27.1"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "annotated-doc" },
-    { name = "colorama", marker = "sys_platform == 'win32' or (extra == 'extra-5-stamp-cpu' and extra == 'extra-5-stamp-gpu') or (extra == 'extra-5-stamp-cpu' and extra == 'extra-5-stamp-gpu-all') or (extra == 'extra-5-stamp-cpu' and extra == 'extra-5-stamp-gpu-prebuilt') or (extra == 'extra-5-stamp-gpu' and extra == 'extra-5-stamp-gpu-all') or (extra == 'extra-5-stamp-gpu' and extra == 'extra-5-stamp-gpu-prebuilt')" },
-    { name = "rich" },
-    { name = "shellingham" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/ae/40/4a3db7990d1f62a53182aa96eaef57aeb2886a27f90a195bc66713565d31/typer-0.27.1.tar.gz", hash = "sha256:a79bef8469a79c45498e7b814ecf8d603cc7644e9acbd9e19cac0334240b18df", size = 203994, upload-time = "2026-08-03T14:41:03.438Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/43/89/9518bc0c3929bee36b3a4a8e3daddd6e03f92f9961c66d4983b837160543/typer-0.27.1-py3-none-any.whl", hash = "sha256:53150287edd11baeb4e4722c8e394fcdf8181c0ae89485cba8d25c778d5edd56", size = 122874, upload-time = "2026-08-03T14:41:04.391Z" },
 ]
 
 [[package]]
