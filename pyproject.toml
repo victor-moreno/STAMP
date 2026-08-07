@@ -225,6 +225,12 @@ conflicts = [
     { extra = "gpu_prebuilt" },
   ],
 ]
+# Retained: COBRA lists torch in its `build-system.requires`, so uv resolves a
+# torch for its build environment independently of the one being installed.
+# Without this constraint that resolves to the newest release on PyPI (2.13.0
+# today) and drags in the whole cuda-toolkit chain -- gigabytes of download for
+# a wheel build, against a different torch than STAMP actually runs. Removable
+# once COBRA drops torch from build-system.requires.
 build-constraint-dependencies = [
   "torch==2.11.0",
   "torchvision==0.26.0",
@@ -285,6 +291,3 @@ url = "https://wheels.astral.sh/simple/cu130/"
 explicit = true
 
 
-[tool.uv.extra-build-dependencies]
-gigapath = ["torch"]
-conch = ["torch"]

@@ -198,15 +198,19 @@ def check_extension_versions(
     cuda = _configured_cuda_version(pyproject)
     if cuda is None:
         return [
-            f"tool.uv.index: no index named {ASTRAL_INDEX_NAME!r} with a "
-            f"recognisable /cuXY/ URL was found"
+            (
+                f"tool.uv.index: no index named {ASTRAL_INDEX_NAME!r} with a "
+                "recognisable /cuXY/ URL was found"
+            )
         ]
 
     torch = _configured_torch_version(pyproject)
     if torch is None:
         return [
-            f"the {', '.join(_TORCH_PINNING_EXTRAS)} extras must each pin torch with "
-            f"a single agreed `~=MAJOR.MINOR.PATCH` requirement"
+            (
+                f"the {', '.join(_TORCH_PINNING_EXTRAS)} extras must each pin torch "
+                "with a single agreed `~=MAJOR.MINOR.PATCH` requirement"
+            )
         ]
 
     sources = pyproject.get("tool", {}).get("uv", {}).get("sources", {})
