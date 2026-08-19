@@ -64,6 +64,40 @@ def test_git_dependencies_are_immutable(checker, pyproject):
     assert checker.check_git_dependencies(requirements) == []
 
 
+def test_every_requirement_is_pinned_exactly(checker, pyproject):
+    """No floors or compatible-release specifiers outside git dependencies."""
+    requirements = list(checker.iter_requirements(pyproject))
+    assert checker.check_exact_pins(requirements) == []
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "gdown>=5.2.0",
+        "torch~=2.11.0",
+        "numpy",
+        "transformers>=4.45.2,<5",
+        "pillow==12.3.0,!=12.2.0",
+    ],
+)
+def test_checker_rejects_a_loose_specifier(checker, text):
+    assert checker.check_exact_pins([checker.Requirement("test", text)])
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "numpy==2.4.6",
+        "xformers==0.0.35; sys_platform == 'linux'",
+        "flash-attn==2.8.3.post1+cu.13.0.torch.2.11; sys_platform == 'linux'",
+        "stamp[gpu_all]",
+        "conch @ git+https://github.com/x/y@" + "a" * 40,
+    ],
+)
+def test_checker_accepts_an_exact_pin(checker, text):
+    assert checker.check_exact_pins([checker.Requirement("test", text)]) == []
+
+
 def test_extension_versions_match_torch_and_cuda(checker, pyproject):
     requirements = list(checker.iter_requirements(pyproject))
     assert checker.check_extension_versions(pyproject, requirements) == []

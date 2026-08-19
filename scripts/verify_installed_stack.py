@@ -59,9 +59,9 @@ def _expected_stack() -> tuple[str, str]:
     torch_req = next(
         r
         for r in pyproject["project"]["optional-dependencies"]["gpu"]
-        if r.startswith("torch~=")
+        if re.match(r"^torch\s*(==|~=)", r)
     )
-    torch = re.search(r"~=\s*(\d+)\.(\d+)", torch_req)
+    torch = re.search(r"(?:==|~=)\s*(\d+)\.(\d+)", torch_req)
     assert torch is not None
 
     return (

@@ -10,6 +10,8 @@ The checks encode decisions that are easy to regress by hand-editing
 * compiled CUDA extensions must come from an index, never a pinned wheel URL,
   so that uv can pick the right Python ABI and architecture;
 * git dependencies must be immutable (HTTPS + full commit SHA);
+* every other requirement must be pinned to an exact version, so a fresh
+  resolution cannot pull in a release published after review;
 * the ``flash-attn`` / ``mamba-ssm`` / ``causal-conv1d`` local versions must
   agree with the PyTorch minor and CUDA channel the project actually selects.
 
@@ -44,6 +46,12 @@ _LOCAL_VERSION = re.compile(
 
 # ``name[extras] <specifier> ; marker`` -- we only need the leading name.
 _REQUIREMENT_NAME = re.compile(r"^\s*(?P<name>[A-Za-z0-9._-]+)")
+
+# ``name[extra]==1.2.3`` with nothing else: no floors, no ranges, no extra
+# clauses. Matched against the requirement with its marker already stripped.
+_EXACT_PIN = re.compile(
+    r"^[A-Za-z0-9._-]+(?:\[[A-Za-z0-9._,-]+\])?\s*==\s*[^\s,=!<>~]+$"
+)
 
 
 def _normalize(name: str) -> str:
@@ -137,6 +145,28 @@ def check_url_requirement_markers(requirements: list[Requirement]) -> list[str]:
     ]
 
 
+def check_exact_pins(requirements: list[Requirement]) -> list[str]:
+    """Every requirement must name one exact version.
+
+    A floor or compatible-release specifier lets a fresh resolution pick up a
+    release published after review, which is the window a compromised package
+    needs. Direct references are exempt: git dependencies carry a commit SHA
+    (see ``check_git_dependencies``) and ``stamp[...]`` extras are self-links.
+    """
+    errors: list[str] = []
+    for req in requirements:
+        if req.name == "stamp" or " @ " in req.text:
+            continue
+
+        specifier = req.text.split(";", 1)[0].strip()
+        if not _EXACT_PIN.match(specifier):
+            errors.append(
+                f"{req.origin}: {req.name} must be pinned to an exact version "
+                f"with '==': {req.text!r}"
+            )
+    return errors
+
+
 def check_gpu_prebuilt_has_no_wheels(pyproject: dict) -> list[str]:
     """``gpu_prebuilt`` is a deprecated alias and must not regain wheel URLs."""
     extras = pyproject.get("project", {}).get("optional-dependencies", {})
@@ -166,12 +196,15 @@ def _configured_cuda_version(pyproject: dict) -> tuple[str, str] | None:
 #: Extras that pin the exact torch build the whole environment is bound to.
 _TORCH_PINNING_EXTRAS = ("cpu", "gpu", "gpu_all")
 
+# ``torch==2.11.0``. ``~=`` is still accepted so the check keeps working if the
+# pin is ever loosened back to a compatible-release specifier.
+_TORCH_PIN = re.compile(r"(?:==|~=)\s*(\d+)\.(\d+)")
+
 
 def _configured_torch_version(pyproject: dict) -> tuple[str, str] | None:
     """Return the ``(major, minor)`` PyTorch version the blanket extras pin.
 
-    Only the blanket targets count: other extras carry loose floors such as
-    ``torch>=2.0.0`` that say nothing about the selected ABI.
+    Only the blanket targets count: they are the ones bound to a torch index.
     """
     extras = pyproject.get("project", {}).get("optional-dependencies", {})
     found: set[tuple[str, str]] = set()
@@ -180,7 +213,7 @@ def _configured_torch_version(pyproject: dict) -> tuple[str, str] | None:
         for text in extras.get(extra, []):
             if _normalize(Requirement("", text).name) != "torch":
                 continue
-            match = re.search(r"~=\s*(\d+)\.(\d+)", text)
+            match = _TORCH_PIN.search(text)
             if match:
                 found.add((match.group(1), match.group(2)))
 
@@ -209,7 +242,7 @@ def check_extension_versions(
         return [
             (
                 f"the {', '.join(_TORCH_PINNING_EXTRAS)} extras must each pin torch "
-                "with a single agreed `~=MAJOR.MINOR.PATCH` requirement"
+                "to a single agreed `==MAJOR.MINOR.PATCH` version"
             )
         ]
 
@@ -277,6 +310,7 @@ def main() -> int:
     errors = [
         *check_no_wheel_urls(requirements),
         *check_git_dependencies(requirements),
+        *check_exact_pins(requirements),
         *check_url_requirement_markers(requirements),
         *check_gpu_prebuilt_has_no_wheels(pyproject),
         *check_extension_versions(pyproject, requirements),
