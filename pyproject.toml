@@ -100,10 +100,6 @@ gigapath = [
 uni = [
     "huggingface-hub==0.36.2",
     "uni @ git+https://github.com/KatherLab/uni.git@f37c299eb0bffa0e585f120974082cfec6ee6d53",
-    # UNI declares xformers unconditionally, but it only ships Linux x86_64 and
-    # Windows AMD64 wheels. Dropped via tool.uv.exclude-dependencies and
-    # re-added here with the platforms it actually supports.
-    "xformers==0.0.35; (sys_platform == 'linux' and platform_machine == 'x86_64') or (sys_platform == 'win32' and platform_machine == 'AMD64')",
 ]
 virchow2 = [
     "huggingface-hub==0.36.2",
@@ -134,6 +130,10 @@ musk_cpu = [
 musk = [
     "stamp[musk_cpu]",
     "stamp[flash-attention]; sys_platform == 'linux'",
+    # MUSK uses xformers' memory-efficient attention on GPUs with compute
+    # capability <= 7, where it does not use flash-attn. Absent, it falls back
+    # to plain attention. Only ships Linux x86_64 and Windows AMD64 wheels.
+    "xformers==0.0.35; (sys_platform == 'linux' and platform_machine == 'x86_64') or (sys_platform == 'win32' and platform_machine == 'AMD64')",
 ]
 plip_cpu = [
     "transformers==4.57.6"
@@ -181,7 +181,7 @@ dev = [
     "ipykernel==7.3.0",
     "pyright==1.1.411",
     "pytest==9.1.1",
-    "ruff==0.16.2",
+    "ruff==0.15.5",
 ]
 
 [build-system]
@@ -241,7 +241,11 @@ no-build-package = [
 ]
 
 # The upstream forks declare their CUDA extras unconditionally, which drags
-# CUDA-only packages onto macOS. Re-declared in the extras above with markers.
+# CUDA-only packages onto macOS. flash-attn and the COBRA extensions are
+# re-declared in the extras above with markers. UNI's xformers is dropped
+# without replacement: UNI never imports it, and declaring it there put it
+# into CPU installs, which must stay free of CUDA packages. It is declared
+# under the musk extra instead, which does use it.
 exclude-dependencies = [
   { package = { name = "uni" }, dependencies = ["xformers"] },
   { package = { name = "gigapath" }, dependencies = ["flash-attn"] },
