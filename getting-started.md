@@ -309,8 +309,11 @@ work only on CUDA devices:
 > **Note:** Slide-level features cannot be used directly for modeling because the clinical labels are at the patient level. However, if only one slide is available per patient, using **[Patient-Level Encoding](#patient-level-encoding)** will produce the same representation as slide-level encoding—but supports downstream modeling.
 
 As with feature extractors, most of these models require you to request
-access. The following example uses CHIEF, which is available if you installed 
-STAMP with `uv sync --all-extras`. The configuration should look like this:
+access. The following example uses CHIEF, which is available if you installed
+STAMP with `uv sync --extra cpu` or `uv sync --extra gpu_all`. (`--all-extras`
+does not work: the `cpu`, `gpu` and `gpu_all` targets are mutually exclusive by
+design, since they install different PyTorch builds.) The configuration should
+look like this:
 
 ```yaml
 # stamp-test-experiment/config.yaml

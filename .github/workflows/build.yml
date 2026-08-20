@@ -6,13 +6,227 @@ on:
   pull_request:
     branches: [ main ]
 
+env:
+  # Recorded so CI and contributors resolve with the same uv. Must stay inside
+  # the `required-version` range in pyproject.toml.
+  UV_VERSION: "0.12.2"
+
 jobs:
-  test_extractors:
+  # --------------------------------------------------------------------- #
+  # Cheap checks that need no installed environment.
+  # --------------------------------------------------------------------- #
+  dependency_config:
+    name: Dependency configuration
     runs-on: ubuntu-latest
-    # needs: format_and_lint
+    steps:
+    - uses: actions/checkout@v5
+    - uses: actions/setup-python@v6
+      with:
+        python-version: '3.14'
+    - name: Check dependency declarations
+      run: python scripts/check_dependency_config.py
+
+  format_and_lint:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v5
+    - uses: actions/setup-python@v6
+      with:
+        python-version: '3.14'
+    # Pinned, and kept in step with the dev group: ruff 0.16 widened its
+    # default rule set and began formatting Python blocks inside Markdown, so
+    # an unpinned install turns CI red without a code change.
+    - name: Install the code linting and formatting tool Ruff
+      run: pipx install ruff==0.15.5
+    - name: Lint code with Ruff
+      run: ruff check --output-format=github --target-version=py313
+    - name: Check code formatting with Ruff
+      run: ruff format --diff --target-version=py313
+
+  # --------------------------------------------------------------------- #
+  # CPU installation across the supported platforms.
+  # --------------------------------------------------------------------- #
+  test_others:
+    name: CPU tests (${{ matrix.os }}, py${{ matrix.python-version }})
+    runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
-        python-version: ["3.13"]
+        include:
+          - os: ubuntu-latest      # Linux x86_64
+            python-version: "3.13"
+          - os: ubuntu-latest      # Linux x86_64
+            python-version: "3.14"
+          # macOS runs the install smoke test below, not the test suite: STAMP
+          # is used on Linux, and the deploy tests hit a macOS-only DataLoader
+          # worker segfault that also reproduces on main.
+    steps:
+    - uses: actions/checkout@v5
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9  # v9.0.0
+      with:
+        version: ${{ env.UV_VERSION }}
+        python-version: ${{ matrix.python-version }}
+        enable-cache: true
+        cache-dependency-glob: "uv.lock"
+
+    # --locked so CI can never silently rewrite the lockfile.
+    - name: Install the project
+      run: uv sync --locked --extra cpu --dev
+
+    - name: Build
+      run: uv build
+
+    - name: Verify no CUDA packages were installed
+      run: uv run --no-sync python scripts/verify_installed_stack.py --expect-no-cuda
+
+    - name: Run other tests
+      run: uv run --no-sync pytest -s tests/ --ignore=tests/test_feature_extractors.py --verbose
+      env:
+        HF_TOKEN: ${{ secrets.HF_TOKEN }}
+
+  # --------------------------------------------------------------------- #
+  # Apple Silicon must install with no CUDA build step at all.
+  # --------------------------------------------------------------------- #
+  macos_cpu_smoke:
+    name: Apple Silicon CPU import smoke test
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v5
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9  # v9.0.0
+      with:
+        version: ${{ env.UV_VERSION }}
+        python-version: "3.14"
+        enable-cache: true
+        cache-dependency-glob: "uv.lock"
+
+    # `-v` surfaces any build backend that runs. The CUDA extensions are
+    # `no-build-package`, so a source build of one would fail the sync instead
+    # of silently probing for nvcc.
+    - name: Install the project
+      run: uv sync --locked --extra cpu --dev -v 2>&1 | tee sync.log
+
+    - name: Verify no CUDA package and no CUDA build step
+      run: |
+        uv run --no-sync python scripts/verify_installed_stack.py --expect-no-cuda
+        if grep -Eiq 'building (flash-attn|mamba-ssm|causal-conv1d)' sync.log; then
+          echo "::error::a CUDA extension was built from source on macOS"
+          exit 1
+        fi
+
+    - name: Import STAMP and the CPU-compatible extractors
+      run: |
+        uv run --no-sync python - <<'PY'
+        import importlib, pkgutil
+        import stamp.preprocessing.extractor as ex
+        import stamp.encoding.encoder as en
+
+        # cobra and gigapath are Linux-only CUDA extras and raise a deliberate
+        # ModuleNotFoundError when their optional dependencies are absent.
+        expected_absent = {"cobra", "gigapath"}
+        failures = []
+        for pkg in (ex, en):
+            for module in pkgutil.iter_modules(pkg.__path__):
+                try:
+                    importlib.import_module(f"{pkg.__name__}.{module.name}")
+                except ModuleNotFoundError as error:
+                    if module.name not in expected_absent:
+                        failures.append(f"{module.name}: {error}")
+        assert not failures, failures
+        print("all CPU-compatible extractors and encoders import")
+        PY
+
+  # --------------------------------------------------------------------- #
+  # The GPU extras must install from wheels alone on a machine with no GPU,
+  # no driver and no CUDA toolkit.
+  # --------------------------------------------------------------------- #
+  gpu_install_without_cuda:
+    name: GPU extras install without CUDA (${{ matrix.extra }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        extra: [gpu, gpu_all]
+    steps:
+    - uses: actions/checkout@v5
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9  # v9.0.0
+      with:
+        version: ${{ env.UV_VERSION }}
+        python-version: "3.14"
+        enable-cache: true
+        cache-dependency-glob: "uv.lock"
+
+    - name: Confirm there is no CUDA toolkit
+      run: |
+        if command -v nvcc; then echo "::error::nvcc is present"; exit 1; fi
+        if command -v nvidia-smi; then echo "::error::nvidia-smi is present"; exit 1; fi
+        echo "no CUDA toolkit and no driver, as required"
+
+    - name: Install ${{ matrix.extra }}
+      run: uv sync --locked --extra ${{ matrix.extra }}
+      env:
+        CUDA_HOME: /nonexistent-cuda
+
+    # `gpu` deliberately omits flash-attn: only the gigapath, conch1_5 and musk
+    # variants bundled into `gpu_all` need it.
+    - name: Verify the installed CUDA stack
+      run: |
+        if [ "${{ matrix.extra }}" = "gpu_all" ]; then
+          required="flash-attn mamba-ssm causal-conv1d"
+        else
+          required="mamba-ssm causal-conv1d"
+        fi
+        uv run --no-sync python scripts/verify_installed_stack.py \
+          --expect-cuda --require $required
+
+  # --------------------------------------------------------------------- #
+  # Linux aarch64 must select the aarch64 wheels rather than failing over to
+  # a source build.
+  # --------------------------------------------------------------------- #
+  gpu_install_aarch64:
+    name: GPU extras install on Linux aarch64
+    runs-on: ubuntu-24.04-arm
+    steps:
+    - uses: actions/checkout@v5
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9  # v9.0.0
+      with:
+        version: ${{ env.UV_VERSION }}
+        python-version: "3.14"
+        enable-cache: true
+        cache-dependency-glob: "uv.lock"
+
+    - name: Install gpu_all
+      run: uv sync --locked --extra gpu_all
+      env:
+        CUDA_HOME: /nonexistent-cuda
+
+    - name: Verify aarch64 wheels were selected
+      run: |
+        uv run --no-sync python scripts/verify_installed_stack.py \
+          --expect-cuda --require flash-attn mamba-ssm causal-conv1d
+        uv run --no-sync python - <<'PY'
+        import platform
+        assert platform.machine() == "aarch64", platform.machine()
+        print("running on aarch64")
+        PY
+
+  # --------------------------------------------------------------------- #
+  # Model-weight downloads are kept out of the dependency jobs above.
+  # --------------------------------------------------------------------- #
+  test_extractors:
+    name: Extractor ${{ matrix.extractor }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.14"]
         extractor: [
           "ctranspath",
           "chief-ctranspath",
@@ -27,80 +241,21 @@ jobs:
           "mstar",
           "plip",
         ]
-
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Install uv
-      uses: astral-sh/setup-uv@v5
+      uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9  # v9.0.0
       with:
+        version: ${{ env.UV_VERSION }}
         python-version: ${{ matrix.python-version }}
         enable-cache: true
         cache-dependency-glob: "uv.lock"
-    
-    # - name: Set up Python ${{ matrix.python-version }}
-    #   uses: actions/setup-python@v5
-    #   with:
-    #     python-version: ${{ matrix.python-version }}
-        
+
     - name: Install the project
-      run: uv sync --extra cpu --dev
-    
-    - name: Build
-      run: uv build
-        
+      run: uv sync --locked --extra cpu --dev
+
     - name: Run tests for extractor ${{ matrix.extractor }}
-      run: uv run --extra cpu pytest -s tests/test_feature_extractors.py -k "${{ matrix.extractor }}" --verbose
+      run: uv run --no-sync pytest -s tests/test_feature_extractors.py -k "${{ matrix.extractor }}" --verbose
       env:
         HF_TOKEN: ${{ secrets.HF_TOKEN }}
-
-  test_others:
-    runs-on: ubuntu-latest
-    # needs: format_and_lint
-    strategy:
-      matrix:
-        python-version: ["3.13"]
-
-    steps:
-    - uses: actions/checkout@v4
-
-    - name: Install uv
-      uses: astral-sh/setup-uv@v5
-      with:
-        python-version: ${{ matrix.python-version }}
-        enable-cache: true
-        cache-dependency-glob: "uv.lock"
-    
-    # - name: Set up Python ${{ matrix.python-version }}
-    #   uses: actions/setup-python@v5
-    #   with:
-    #     python-version: ${{ matrix.python-version }}
-        
-    - name: Install the project
-      run: uv sync --extra cpu --dev
-    
-    - name: Build
-      run: uv build
-        
-    - name: Run other tests
-      run: uv run --extra cpu pytest -s tests/ -k "not test_feature_extractors.py" --verbose
-      env:
-        HF_TOKEN: ${{ secrets.HF_TOKEN }}
-  
-  format_and_lint:
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v4
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.13'
-    - name: Install the code linting and formatting tool Ruff
-      run: pipx install ruff
-    - name: Lint code with Ruff
-      run: ruff check --output-format=github --target-version=py313
-    - name: Check code formatting with Ruff
-      run: ruff format --diff --target-version=py313
-      # continue-on-error: true
-  
