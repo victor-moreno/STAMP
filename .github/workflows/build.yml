@@ -57,8 +57,9 @@ jobs:
             python-version: "3.13"
           - os: ubuntu-latest      # Linux x86_64
             python-version: "3.14"
-          - os: macos-latest       # Apple Silicon
-            python-version: "3.14"
+          # macOS runs the install smoke test below, not the test suite: STAMP
+          # is used on Linux, and the deploy tests hit a macOS-only DataLoader
+          # worker segfault that also reproduces on main.
     steps:
     - uses: actions/checkout@v5
 

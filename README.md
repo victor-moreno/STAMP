@@ -51,6 +51,9 @@ Python **3.14 is recommended** and is what `.python-version` selects; 3.13 remai
 supported. The CUDA builds are pinned to one ABI stack: **CUDA 13.0 with PyTorch
 2.11.0 and TorchVision 0.26.0**.
 
+CI runs the test suite on Linux. macOS is checked for installation and imports
+only, so it stays usable for development but is not a tested target.
+
 There is no CUDA build for macOS or Windows. `flash-attn`, `mamba-ssm` and
 `causal-conv1d` are only published as pre-built wheels for Linux, and STAMP
 refuses to compile them (see [below](#why-uv-is-required)), so a GPU extra on
